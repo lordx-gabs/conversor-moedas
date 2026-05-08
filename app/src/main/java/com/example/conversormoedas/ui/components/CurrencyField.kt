@@ -10,13 +10,19 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,7 +39,13 @@ fun CurrencyField(
     modifier: Modifier = Modifier,
     isEnabled: Boolean = true
 ) {
-    val currencyVisualTransformation = rememberCurrencyVisualTransformation(currency = "USD")
+    val textFieldValue = remember(currencyAmount) {
+        TextFieldValue(
+            text = currencyAmount,
+            selection = TextRange(currencyAmount.length)
+        )
+    }
+    val currencyVisualTransformation = rememberCurrencyVisualTransformation(selectedCurrency)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium
@@ -50,9 +62,11 @@ fun CurrencyField(
             )
 
             OutlinedTextField(
-                value = currencyAmount,
+                value = textFieldValue,
                 enabled = isEnabled,
-                onValueChange = onCurrencyAmountChanged,
+                onValueChange = {
+                    onCurrencyAmountChanged(it.text)
+                },
                 visualTransformation = currencyVisualTransformation,
                 modifier = Modifier
                     .weight(1f),
@@ -72,7 +86,9 @@ fun CurrencyField(
                 },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
                 ),
+
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,

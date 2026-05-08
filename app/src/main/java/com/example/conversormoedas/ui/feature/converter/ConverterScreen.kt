@@ -151,10 +151,6 @@ fun ConverterContent(
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primary,
-                        border = BorderStroke(
-                            width = 0.5.dp,
-                            color = Color.LightGray
-                        ),
                         modifier = Modifier
                             .align(Alignment.Center)
                     ) {

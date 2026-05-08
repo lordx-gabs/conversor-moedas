@@ -2,12 +2,9 @@ package com.example.conversormoedas.ui.mask
 
 import android.icu.text.NumberFormat
 import android.icu.util.Currency
-import android.util.Log
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.core.text.isDigitsOnly
 import java.math.BigDecimal
 
 class CurrencyVisualTransformation(
@@ -21,20 +18,27 @@ class CurrencyVisualTransformation(
     }
 
     override fun filter(text: AnnotatedString): TransformedText {
-        val originalText = text.text.trim()
-        if (originalText.isEmpty()) {
+        val originalText = text.text
+            .trim()
+
+        val parts = originalText.split(".")
+
+        val formatted = if (parts.size > 1) {
+            parts[0] + parts[1].take(2)
+        } else {
+            originalText
+                .filter { it.isDigit() }
+        }
+
+        if (formatted.isEmpty()) {
             val emptyFormatted = numberFormatter.format(0)
             return TransformedText(
                 AnnotatedString(emptyFormatted),
                 CurrencyOffsetMapping("", emptyFormatted)
             )
         }
-        if (originalText.isDigitsOnly().not()) {
-            Log.w("TAG", "Prize visual transformation require using digits only but found [$originalText]")
-            return TransformedText(text, OffsetMapping.Identity)
-        }
+        val parsed = BigDecimal(formatted).movePointLeft(2)
 
-        val parsed = BigDecimal(originalText).movePointLeft(2)
         val formattedText = numberFormatter.format(parsed)
 
         return TransformedText(

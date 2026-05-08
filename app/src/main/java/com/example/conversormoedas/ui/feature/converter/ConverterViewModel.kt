@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,12 +19,15 @@ class ConverterViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
     private val _conversionState = MutableStateFlow<ConversionState>(ConversionState.Idle)
     val conversionState = _conversionState.asStateFlow()
+    private val _allCurrencies = listOf("BRL", "EUR", "USD")
 
     init {
-        _uiState.update {
+        _uiState.update { it ->
             it.copy(
-                fromCurrenciesList = listOf("USD", "EUR", "BRL"),
-                toCurrenciesList = listOf("BRL", "EUR", "USD"),
+                fromCurrenciesList = _allCurrencies,
+                toCurrenciesList = _allCurrencies.filter {
+                    it != "BRL"
+                },
                 fromCurrencySelected = "BRL",
                 toCurrencySelected = "USD"
             )
@@ -34,7 +38,16 @@ class ConverterViewModel @Inject constructor(
         when (event) {
             is ConverterUiEvent.OnFromCurrencySelected -> {
                 _uiState.update {
-                    it.copy(fromCurrencySelected = event.currency)
+                    val toCurrencyList = _allCurrencies
+                        .filter { currency -> currency != event.currency }
+                        .sorted()
+
+                    it.copy(
+                        fromCurrencySelected = event.currency,
+                        toCurrenciesList = toCurrencyList,
+                        toCurrencySelected = if (event.currency == it.toCurrencySelected) toCurrencyList[0] else it.toCurrencySelected,
+                        toCurrencyAmount = if (event.currency == it.toCurrencySelected) "0" else it.toCurrencyAmount,
+                    )
                 }
             }
 
@@ -46,12 +59,15 @@ class ConverterViewModel @Inject constructor(
 
             is ConverterUiEvent.OnToCurrencySelected -> {
                 _uiState.update {
-                    it.copy(toCurrencySelected = event.currency)
+                    it.copy(
+                        toCurrencySelected = event.currency,
+                        toCurrencyAmount = if (event.currency != it.fromCurrencySelected && it.toCurrencyAmount != "0") "0" else it.toCurrencyAmount,
+                    )
                 }
             }
 
             ConverterUiEvent.SendConverterForm -> {
-               convertCurrency()
+                convertCurrency()
             }
         }
     }
@@ -60,7 +76,10 @@ class ConverterViewModel @Inject constructor(
         viewModelScope.launch {
             val fromCurrency = _uiState.value.fromCurrencySelected
             val toCurrency = _uiState.value.toCurrencySelected
-            val amount = _uiState.value.fromCurrencyAmount.toDoubleOrNull()
+            val amount = _uiState.value.fromCurrencyAmount
+                .toBigDecimalOrNull()
+                ?.divide(BigDecimal(100))
+                ?.toDouble()
 
             if (fromCurrency.isNotBlank() && toCurrency.isNotBlank() && amount != null) {
                 _conversionState.update {
